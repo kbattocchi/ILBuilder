@@ -155,76 +155,147 @@ type MethodProvider() =
         base.AddNamespace("MethodProvider", [root])
 
 type IlBuilder() =
+
+    /// <summary>
+    /// Pushes a supplied value of type int32 onto the evaluation stack as an int32.
+    /// </summary>
     [<CustomOperation("ldc_i4", MaintainsVariableSpace=true)>]
     member __.Ldc_I4((Instrs f : Instrs<'a,'r,_>, j), [<ProjectionParameter>]h:_->int) : Instrs<V<int> * 'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldc_I4, h j)), j
+    /// <summary>
+    /// Pushes a new object reference to a string literal stored in the metadata.
+    /// </summary>
     [<CustomOperation("ldstr", MaintainsVariableSpace=true)>]
     member __.Ldstr((Instrs f : Instrs<'a,'r,_>, j), [<ProjectionParameter>]h:_->string) : Instrs<V<string> * 'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldstr, h j)), j
+    /// <summary>
+    /// Removes the value currently on top of the evaluation stack.
+    /// </summary>
     [<CustomOperation("pop", MaintainsVariableSpace=true)>]
     member __.Pop((Instrs f : Instrs<_*'a,'r,_>, j)) : Instrs<'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Pop)), j
+    /// <summary>
+    /// Copies the current topmost value on the evaluation stack, and then pushes the copy onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("dup", MaintainsVariableSpace=true)>]
     member __.Dup((Instrs f : Instrs<'t*'a,'r,_>, j)) : Instrs<'t*('t*'a),'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Dup)), j
+    /// <summary>
+    /// Fills space if opcodes are patched. No meaningful operation is performed although a processing cycle can be consumed.
+    /// </summary>
     [<CustomOperation("nop", MaintainsVariableSpace=true)>]
     member __.Nop((Instrs f : Instrs<'a,'r,_>, j)) : Instrs<'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Nop)), j
+    /// <summary>
+    /// Adds two values and pushes the result onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("add", MaintainsVariableSpace=true)>]
     member __.Add((Instrs f : Instrs<V<int>*(V<int>*'a),'r,_>, j)) : Instrs<V<int>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Add)), j
+    /// <summary>
+    /// Subtracts one value from another and pushes the result onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("sub", MaintainsVariableSpace=true)>]
     member __.Sub((Instrs f : Instrs<V<int>*(V<int>*'a),'r,_>, j)) : Instrs<V<int>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Sub)), j
+    /// <summary>
+    /// Multiplies two values and pushes the result on the evaluation stack.
+    /// </summary>
     [<CustomOperation("mul", MaintainsVariableSpace=true)>]
     member __.Mul((Instrs f : Instrs<V<int>*(V<int>*'a),'r,_>, j)) : Instrs<V<int>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Mul)), j
+    /// <summary>
+    /// Divides two values and pushes the result as a floating-point (type F) or quotient (type int32) onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("div", MaintainsVariableSpace=true)>]
     member __.Div((Instrs f : Instrs<V<int>*(V<int>*'a),'r,_>, j)) : Instrs<V<int>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Div)), j
+    /// <summary>
+    /// Divides two values and pushes the remainder onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("rem", MaintainsVariableSpace=true)>]
     member __.Rem((Instrs f : Instrs<V<int>*(V<int>*'a),'r,_>, j)) : Instrs<V<int>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Rem)), j
+    /// <summary>
+    /// Returns from the current method, pushing a return value (if present) from the callee's evaluation stack onto the caller's evaluation stack.
+    /// </summary>
     [<CustomOperation("ret", MaintainsVariableSpace=true)>]
     member __.Ret((Instrs f : Instrs<'r,'r,_>, j)) : Instrs<'a,'r,_> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ret)), j
+    /// <summary>
+    /// Unconditionally transfers control to a target instruction.
+    /// </summary>
     [<CustomOperation("br", MaintainsVariableSpace=true)>]
     member __.Br((Instrs f : Instrs<'s,'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<_,'r,Ok> * _ =
         Instrs(f +> fun s-> s.ilg.Emit(OpCodes.Br, h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Transfers control to a target instruction if two values are equal.
+    /// </summary>
     [<CustomOperation("beq", MaintainsVariableSpace=true)>]
     member __.Beq((Instrs f : Instrs<V<int>*(V<int>*'s),'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Beq, h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Transfers control to a target instruction if the first value is greater than the second value.
+    /// </summary>
     [<CustomOperation("bgt", MaintainsVariableSpace=true)>]
     member __.Bgt((Instrs f : Instrs<V<int>*(V<int>*'s),'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Bgt, h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Transfers control to a target instruction if the first value is greater than or equal to the second value.
+    /// </summary>
     [<CustomOperation("bge", MaintainsVariableSpace=true)>]
     member __.Bge((Instrs f : Instrs<V<int>*(V<int>*'s),'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Bge, h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Transfers control to a target instruction if the first value is less than the second value.
+    /// </summary>
     [<CustomOperation("blt", MaintainsVariableSpace=true)>]
     member __.Blt((Instrs f : Instrs<V<int>*(V<int>*'s),'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Blt, h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Transfers control to a target instruction if the first value is less than or equal to the second value.
+    /// </summary>
     [<CustomOperation("ble", MaintainsVariableSpace=true)>]
     member __.Ble((Instrs f : Instrs<V<int>*(V<int>*'s),'r,_>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ble, h j |> unlabel |> ensureLabel s)), j
     /// Pseudo-opcode for marking a label
+    /// <param name="loc">The label for which to set an index. </param><exception cref="T:System.ArgumentException"><paramref name="loc"/> represents an invalid index into the label array.-or- An index for <paramref name="loc"/> has already been defined. </exception>
     [<CustomOperation("markLabel", MaintainsVariableSpace=true)>]
     member __.MarkLabel((Instrs f : Instrs<'s,'r,'d>, j), [<ProjectionParameter>]h:_->Label<'s>) : Instrs<'s,'r,'d> * _ =
         Instrs(f +> fun s -> s.ilg.MarkLabel(h j |> unlabel |> ensureLabel s)), j
+    /// <summary>
+    /// Loads the local variable at a specific index onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldloc", MaintainsVariableSpace=true)>]
     member __.Ldloc((Instrs f : Instrs<'s,'r,_>, j), [<ProjectionParameter>]h:_->Local<'a>) : Instrs<V<'a>*'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldloc, h j |> unlocal |> ensureLocal<'a> s)), j
+    /// <summary>
+    /// Loads the address of the local variable at a specific index onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldloca", MaintainsVariableSpace=true)>]
     member __.Ldloca((Instrs f : Instrs<'s,'r,_>, j), [<ProjectionParameter>]h:_->Local<'a>) : Instrs<B<'a>*'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldloca, h j |> unlocal |> ensureLocal<'a> s)), j
+    /// <summary>
+    /// Pops the current value from the top of the evaluation stack and stores it in a the local variable list at a specified index.
+    /// </summary>
     [<CustomOperation("stloc", MaintainsVariableSpace=true)>]
     member __.Stloc((Instrs f : Instrs<V<'a>*'s,'r,_>, j), [<ProjectionParameter>]h:_->Local<'a>) : Instrs<'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Stloc, h j |> unlocal |> ensureLocal<'a> s)), j
+    /// <summary>
+    /// Converts a value type to an object reference (type O).
+    /// </summary>
     [<CustomOperation("box", MaintainsVariableSpace=true)>]
     member __.Box((Instrs f : Instrs<V<'a>*'s,'r,_>, j)) : Instrs<V<obj>*'s,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Box, typeof<'a>)), j
+    /// <summary>
+    /// Calls the method indicated by the passed method descriptor.
+    /// </summary>
     [<CustomOperation("call", MaintainsVariableSpace=true)>]
     member __.Call((Instrs f : Instrs<'pre,'r,_>, j), [<ProjectionParameter>]h:_->M<'pre,'post>) : Instrs<'post,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Call, h j |> unM)), j
+    /// <summary>
+    /// Calls a late-bound method on an object, pushing the return value onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("callvirt", MaintainsVariableSpace=true)>]
     member __.CallVirt((Instrs f : Instrs<'pre,'r,_>, j), [<ProjectionParameter>]h:_->M<'pre,'post>) : Instrs<'post,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Call, h j |> unM)), j
@@ -240,12 +311,21 @@ type IlBuilder() =
 
 type IlBuilder<'t1>() =
     inherit IlBuilder()
+    /// <summary>
+    /// Loads the argument at index 0 onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldarg_0", MaintainsVariableSpace=true)>]
     member __.Ldarg_0((Instrs f : Instrs<'a,'r,_>, j)) : Instrs<V<'t1>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldarg_0)), j
+    /// <summary>
+    /// Stores the value on top of the evaluation stack in the argument slot at a specified index.
+    /// </summary>
     [<CustomOperation("starg_0", MaintainsVariableSpace=true)>]
     member __.Starg_0((Instrs f : Instrs<V<'t1>*'a,'r,_>, j)) : Instrs<'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Starg, 0s)), j
+    /// <summary>
+    /// Load an argument address onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldarga_0", MaintainsVariableSpace=true)>]
     member __.Ldarga_0((Instrs f : Instrs<'a,'r,_>, j)) : Instrs<B<'t1>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldarga, 0s)), j
@@ -269,12 +349,21 @@ type IlBuilder<'t1>() =
 
 type IlBuilder<'t1,'t2>() =
     inherit IlBuilder<'t1>()
+    /// <summary>
+    /// Loads the argument at index 1 onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldarg_1", MaintainsVariableSpace=true)>]
     member __.Ldarg_1((Instrs f : Instrs<'a,'r,_>, j)) : Instrs<V<'t2>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldarg_1)), j
+    /// <summary>
+    /// Stores the value on top of the evaluation stack in the argument slot at a specified index.
+    /// </summary>
     [<CustomOperation("starg_1", MaintainsVariableSpace=true)>]
     member __.Starg_1((Instrs f : Instrs<V<'t2>*'a,'r,_>, j)) : Instrs<'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Starg, 1s)), j
+    /// <summary>
+    /// Load an argument address onto the evaluation stack.
+    /// </summary>
     [<CustomOperation("ldarga_1", MaintainsVariableSpace=true)>]
     member __.Ldarga_1((Instrs f : Instrs<'a,'r,_>, j)) : Instrs<B<'t2>*'a,'r,Nok> * _ =
         Instrs(f +> fun s -> s.ilg.Emit(OpCodes.Ldarga, 1s)), j
